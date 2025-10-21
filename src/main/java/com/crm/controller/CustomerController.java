@@ -71,4 +71,10 @@ public class CustomerController {
         customerService.customerToPublicPool(idQuery);
         return Result.ok();
     }
+    @PostMapping("toPrivate")
+    @Operation(summary = "领取客户")
+    public Result publicPoolToPrivate(@RequestBody @Validated IdQuery idQuery) {
+        customerService.publicPoolToPrivate(idQuery);
+        return Result.ok();
+    }
 }

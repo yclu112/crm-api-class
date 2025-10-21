@@ -44,7 +44,7 @@ public class Manager {
 
     @ApiModelProperty("状态  0：停用   1：正常")
     @TableField("status")
-    private Byte status;
+    private Integer status;
 
     @ApiModelProperty("删除标识  0：正常   1：已删除")
     @TableField(value = "delete_flag", fill = FieldFill.INSERT)

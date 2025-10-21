@@ -24,4 +24,5 @@ public interface CustomerService extends IService<Customer> {
     void saveOrUpdate(CustomerVO customerVO);
     void removeCustomer(List<Integer> ids);
     void customerToPublicPool(IdQuery idQuery);
+    void publicPoolToPrivate(IdQuery idQuery);
 }

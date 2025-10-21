@@ -1,5 +1,6 @@
 package com.crm.security.user;
 
+import com.crm.entity.Manager;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,6 +21,10 @@ public class ManagerDetail implements UserDetails {
     private String realName;
     private Integer status;
     private String username;
+    private String nickname;
+    private Integer departId; // 部门ID
+    private String departName; // 部门名称
+
 
     /**
      * 帐户是否过期
@@ -41,6 +46,18 @@ public class ManagerDetail implements UserDetails {
      * 拥有权限集合
      */
     private Set<String> authoritySet;
+
+    // 从Manager实体复制属性
+    public static ManagerDetail fromManager(Manager manager) {
+        ManagerDetail detail = new ManagerDetail();
+        detail.setId(manager.getId());
+        detail.setAccount(manager.getAccount());
+        detail.setPassword(manager.getPassword());
+        detail.setNickname(manager.getNickname());
+        detail.setDepartId(manager.getDepartId());
+        detail.setStatus(manager.getStatus());
+        return detail;
+    }
 
     @Override
     @JsonIgnore
@@ -67,4 +84,10 @@ public class ManagerDetail implements UserDetails {
     public boolean isEnabled() {
         return this.isEnabled;
     }
+
+    @Override
+    public String getUsername() {
+        return account;
+    }
+
 }

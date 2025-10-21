@@ -17,4 +17,5 @@ public class SysTokenVO implements Serializable {
 
     @Schema(description = "access_token")
     private String access_token;
+
 }

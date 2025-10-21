@@ -85,6 +85,12 @@ public class CustomerVO {
     @ExcelProperty(value = "性别", converter = GenderConverter.class)
     private Integer gender;
 
+    @Schema(description = "客户所属员工部门ID")
+    private Integer ownerDepartId;
+
+    @Schema(description = "客户所属员工部门名称")
+    private String ownerDepartName;
+
     @Schema(description = "成交次数")
     @ExcelProperty("成交次数")
     private Integer dealCount;
