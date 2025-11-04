@@ -1,9 +1,7 @@
 package com.crm.mapper;
 
 import com.crm.entity.Customer;
-import com.crm.vo.CustomerVO;
 import com.github.yulichang.base.MPJBaseMapper;
-
 
 /**
  * <p>
