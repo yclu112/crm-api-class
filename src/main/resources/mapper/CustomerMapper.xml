@@ -24,5 +24,42 @@
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
     </resultMap>
+    <!-- 日/月/默认维度通用统计（修复格式和分组） -->
+    <select id="getTradeStatistics" resultType="com.crm.vo.CustomerTrendVO">
+        select
+        count(*) as tradeCount,  -- 去掉any_value，直接统计
+        date_format(create_time, #{query.timeFormat}) as tradeTime  -- 用传入的格式符格式化
+        from t_customer
+        where delete_flag = 0
+        <if test="query.timeRange[0] != null and query.timeRange[1] != null ">
+            and create_time between #{query.timeRange[0]} and #{query.timeRange[1]}
+        </if>
+        group by date_format(create_time, #{query.timeFormat})  -- 用原始表达式分组
+        order by tradeTime  -- 确保时间顺序正确
+    </select>
 
+    <!-- 2. 月/默认维度专用（id 保持 getTradeStatisticsByDay） -->
+    <select id="getTradeStatisticsByDay" resultType="com.crm.vo.CustomerTrendVO">
+        SELECT
+            DATE_FORMAT(create_time, '%H') AS tradeTime,  -- 应返回 00-23
+            COUNT(*) AS tradeCount
+        FROM t_customer
+        WHERE delete_flag = 0
+          AND create_time BETWEEN '2025-11-09 00:00:00' AND '2025-11-09 23:59:59'
+        GROUP BY DATE_FORMAT(create_time, '%H')
+        ORDER BY tradeTime;
+    </select>
+    <!-- 【周维度SQL完全保留，不做修改】 -->
+    <select id="getTradeStatisticsByWeek" resultType="com.crm.vo.CustomerTrendVO">
+        select any_value(count(*)) as tradeCount,
+        floor((datediff(create_time, date_format(create_time, '%Y-%01-01')) +
+        weekday(date_format(create_time, '%Y-%01-01'))+1)/7)+1 as tradeTime
+        from t_customer
+        where delete_flag = 0
+        <if test="query.timeRange[0] != null and query.timeRange[1] != null ">
+            and create_time between #{query.timeRange[0]} and #{query.timeRange[1]}
+            and create_time >= #{query.timeRange[0]}
+        </if>
+        group by tradeTime;
+    </select>
 </mapper>

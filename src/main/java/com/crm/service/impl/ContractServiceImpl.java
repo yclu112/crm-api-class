@@ -13,21 +13,27 @@ import com.crm.mapper.ContractMapper;
 import com.crm.mapper.ContractProductMapper;
 import com.crm.mapper.ProductMapper;
 import com.crm.query.ContractQuery;
+import com.crm.query.ContractTrendQuery;
 import com.crm.security.user.SecurityUser;
 import com.crm.service.ContractService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.crm.utils.DateUtils;
+import com.crm.vo.ContractTrendVO;
 import com.crm.vo.ContractVO;
 import com.crm.vo.ProductVO;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import static com.crm.utils.NumberUtils.generateContractNumber;
 
 /**
@@ -107,6 +113,103 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         // 处理合同商品明细
         handleContractProducts(contract.getId(), contractVO.getProducts());
 
+    }
+
+    @Autowired
+    private ContractMapper contractMapper;
+
+    @Override
+    public Map<String, List> getContractTrendData(ContractTrendQuery query) {
+        List<String> timeList = new ArrayList<>();
+        List<Integer> countList = new ArrayList<>();
+        List<ContractTrendVO> tradeStatistics = new ArrayList<>();
+
+        // 维度判断逻辑不变，确保调用正确的 Mapper 方法
+        if ("day".equals(query.getTransactionType())) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime endTime = now.truncatedTo(ChronoUnit.SECONDS);
+            LocalDateTime startTime = now.withHour(0).withMinute(0).withSecond(0).truncatedTo(ChronoUnit.SECONDS);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            List<String> timeRange = new ArrayList<>();
+            timeRange.add(formatter.format(startTime));
+            timeRange.add(formatter.format(endTime));
+            query.setTimeRange(timeRange);
+
+            query.setTimeFormat("%H");
+            tradeStatistics = baseMapper.getTradeStatisticsByDay(query); // 调用日维度 SQL
+
+            // 生成与 SQL 返回格式一致的 timeList（00-23，字符串类型）
+            timeList = DateUtils.getHourData(timeRange);
+            if (timeList.isEmpty() || !timeList.get(0).matches("\\d{2}")) {
+                timeList = new ArrayList<>();
+                for (int i = 0; i < 24; i++) {
+                    timeList.add(String.format("%02d", i));
+                }
+            }
+
+        } else if ("monthrange".equals(query.getTransactionType())) {
+            query.setTimeFormat("%Y-%m");
+            timeList = DateUtils.getMonthInRange(query.getTimeRange().get(0), query.getTimeRange().get(1));
+            tradeStatistics = baseMapper.getTradeStatistics(query); // 调用通用 SQL
+
+        } else if ("week".equals(query.getTransactionType())) {
+            // 生成与 SQL 返回格式一致的 timeList（周数，如 "45"，字符串类型）
+            timeList = DateUtils.getWeekInRange(query.getTimeRange().get(0), query.getTimeRange().get(1));
+            tradeStatistics = baseMapper.getTradeStatisticsByWeek(query); // 调用周维度 SQL
+
+        } else {
+            query.setTimeFormat("%Y-%m-%d");
+            timeList = DateUtils.getDatesInRange(query.getTimeRange().get(0), query.getTimeRange().get(1));
+            tradeStatistics = baseMapper.getTradeStatistics(query); // 调用通用 SQL
+        }
+
+        // 核心：遍历 tradeStatistics 时，使用 ContractTrendVO 的 getTradeTime() 和 getTradeCount()
+        Map<String, Integer> dataMap = new HashMap<>();
+        // 先判断集合不为 null，避免 NPE
+        if (tradeStatistics != null) {
+            for (ContractTrendVO vo : tradeStatistics) {
+                // 过滤 null 对象，且确保 tradeTime 和 tradeCount 不为 null
+                if (vo != null && vo.getTradeTime() != null && vo.getTradeCount() != null) {
+                    dataMap.put(vo.getTradeTime(), vo.getTradeCount());
+                }
+            }
+        }
+
+        // 填充 countList（无数据补 0）
+        countList.clear();
+        for (String time : timeList) {
+            countList.add(dataMap.getOrDefault(time, 0));
+        }
+
+        Map<String, List> result = new HashMap<>();
+        result.put("timeList", timeList);
+        result.put("countList", countList);
+        return result;
+    }
+    // 复用已有的周范围生成方法（与客户模块保持一致）
+    private List<String> getWeekInRange(String start, String end) {
+        return DateUtils.getDatesInRange(start, end);
+    }
+
+
+    // 生成周时间标签（yyyy-MM-dd）
+    private List<String> getWeekLabels(String startDate, String endDate) {
+        // 实现参考DateUtils.getDatesInRange，返回日期列表
+        return DateUtils.getDatesInRange(startDate, endDate);
+    }
+
+    // 生成月时间标签（yyyy-MM）
+    private List<String> getMonthLabels(String startDate, String endDate) {
+        List<String> labels = new ArrayList<>();
+        LocalDate start = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate end = LocalDate.parse(endDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        LocalDate current = start;
+        while (!current.isAfter(end)) {
+            labels.add(current.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+            current = current.plusMonths(1);
+        }
+        return labels;
     }
 
     private void handleContractProducts(Integer contractId, List<ProductVO> newProductList) {

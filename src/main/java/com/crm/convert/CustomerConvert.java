@@ -1,5 +1,6 @@
 package com.crm.convert;
 import com.crm.entity.Customer;
+import com.crm.entity.Lead;
 import com.crm.vo.CustomerVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
@@ -12,5 +13,5 @@ public interface CustomerConvert {
     Customer convert(CustomerVO customerVO);
 
     // 可选：如果需要反向转换，可添加
-    CustomerVO convert(Customer customer);
+    Customer leadConvert(Lead lead);
 }

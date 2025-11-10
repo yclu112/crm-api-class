@@ -1,7 +1,9 @@
 package com.crm.controller;
 
+import com.crm.common.aop.Log;
 import com.crm.common.result.PageResult;
 import com.crm.common.result.Result;
+import com.crm.enums.BusinessType;
 import com.crm.query.SysRoleQuery;
 import com.crm.service.SysMenuService;
 import com.crm.service.SysRoleService;
@@ -37,6 +39,7 @@ public class SysRoleController {
 
     @PostMapping("page")
     @Operation(summary = "分页")
+    @Log(title = "分页", businessType = BusinessType.SELECT)
     public Result<PageResult<SysRoleVO>> page(@RequestBody @Valid SysRoleQuery query) {
         PageResult<SysRoleVO> page = sysRoleService.page(query);
         return Result.ok(page);
@@ -44,6 +47,7 @@ public class SysRoleController {
 
     @PostMapping("list")
     @Operation(summary = "列表")
+    @Log(title = "列表", businessType = BusinessType.SELECT)
     public Result<List<SysRoleVO>> list() {
         List<SysRoleVO> list = sysRoleService.getList(new SysRoleQuery());
         return Result.ok(list);
@@ -51,6 +55,7 @@ public class SysRoleController {
 
     @PostMapping("add")
     @Operation(summary = "保存")
+    @Log(title = "保存", businessType = BusinessType.SELECT)
     public Result<String> save(@RequestBody @Valid SysRoleVO vo) {
         sysRoleService.save(vo);
         return Result.ok();
@@ -58,6 +63,7 @@ public class SysRoleController {
 
     @PostMapping("edit")
     @Operation(summary = "修改")
+    @Log(title = "修改", businessType = BusinessType.SELECT)
     public Result<String> update(@RequestBody @Valid SysRoleVO vo) {
         sysRoleService.update(vo);
         return Result.ok();
@@ -65,6 +71,7 @@ public class SysRoleController {
 
     @PostMapping("remove")
     @Operation(summary = "删除")
+    @Log(title = "删除", businessType = BusinessType.SELECT)
     public Result<String> delete(@RequestBody List<Integer> idList) {
         sysRoleService.delete(idList);
         return Result.ok();
@@ -72,6 +79,7 @@ public class SysRoleController {
 
     @PostMapping("menu")
     @Operation(summary = "角色表单菜单列表")
+    @Log(title = "角色表单菜单列表", businessType = BusinessType.SELECT)
     public Result<List<SysMenuVO>> getRoleFormMenuList() {
         List<SysMenuVO> list = sysMenuService.getRoleFormMenuList();
         return Result.ok(list);

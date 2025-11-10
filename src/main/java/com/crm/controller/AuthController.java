@@ -1,7 +1,9 @@
 package com.crm.controller;
 
 
+import com.crm.common.aop.Log;
 import com.crm.common.result.Result;
+import com.crm.enums.BusinessType;
 import com.crm.security.cache.TokenStoreCache;
 import com.crm.security.user.ManagerDetail;
 import com.crm.security.utils.TokenUtils;
@@ -38,6 +40,7 @@ public class AuthController {
 
     @PostMapping("login")
     @Operation(summary = "账号密码登录")
+    @Log(title = "账号密码登录", businessType = BusinessType.SELECT)
     public Result<SysLoginResultVO> login(@RequestBody SysAccountLoginVO login) {
         SysTokenVO tokenVO = authService.loginByAccount(login);
         ManagerDetail managerDetail = tokenStoreCache.getUser(tokenVO.getAccess_token());
@@ -58,6 +61,7 @@ public class AuthController {
 
     @PostMapping("logout")
     @Operation(summary = "退出")
+    @Log(title = "退出", businessType = BusinessType.SELECT)
     public Result<String> logout(HttpServletRequest request) {
         authService.logout(TokenUtils.getAccessToken(request));
 

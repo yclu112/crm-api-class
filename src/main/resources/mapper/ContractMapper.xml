@@ -22,5 +22,59 @@
         <result column="start_time" property="startTime" />
         <result column="end_time" property="endTime" />
     </resultMap>
+    <!-- 1. 通用统计（日/月/默认维度） -->
+    <select id="getTradeStatistics" resultType="com.crm.vo.ContractTrendVO">
+        select
+        count(*) as tradeCount,  <!-- 对应 ContractTrendVO 的 tradeCount -->
+        date_format(create_time, #{query.timeFormat}) as tradeTime  <!-- 对应 tradeTime -->
+        from t_contract
+        where delete_flag = 0
+        <if test="query.timeRange[0] != null and query.timeRange[1] != null">
+            and create_time between #{query.timeRange[0]} and #{query.timeRange[1]}
+        </if>
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+        group by date_format(create_time, #{query.timeFormat})
+        order by tradeTime
+    </select>
 
+    <!-- 2. 日维度专用（按小时） -->
+    <select id="getTradeStatisticsByDay" resultType="com.crm.vo.ContractTrendVO">
+        SELECT
+        DATE_FORMAT(create_time, '%H') AS tradeTime,  <!-- 对应 tradeTime -->
+        COUNT(*) AS tradeCount  <!-- 对应 tradeCount -->
+        FROM t_contract
+        WHERE delete_flag = 0
+        AND create_time BETWEEN #{query.timeRange[0]} AND #{query.timeRange[1]}
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+        GROUP BY DATE_FORMAT(create_time, '%H')
+        ORDER BY tradeTime;
+    </select>
+
+    <!-- 3. 周维度专用（按周数） -->
+    <select id="getTradeStatisticsByWeek" resultType="com.crm.vo.ContractTrendVO">
+        select
+        any_value(count(*)) as tradeCount,  <!-- 对应 tradeCount -->
+        <!-- 周数转为字符串，确保与 timeList 格式匹配（字符串类型） -->
+        CAST(
+        floor((datediff(create_time, date_format(create_time, '%Y-%01-01')) +
+        weekday(date_format(create_time, '%Y-%01-01')) + 1)/7) + 1
+        AS CHAR) as tradeTime  <!-- 对应 tradeTime -->
+        from t_contract
+        where delete_flag = 0
+        <if test="query.timeRange[0] != null and query.timeRange[1] != null">
+            and create_time between
+            STR_TO_DATE(#{query.timeRange[0]}, '%Y-%m-%d %H:%i:%s')
+            and
+            STR_TO_DATE(#{query.timeRange[1]}, '%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+        group by tradeTime
+        order by tradeTime;
+    </select>
 </mapper>

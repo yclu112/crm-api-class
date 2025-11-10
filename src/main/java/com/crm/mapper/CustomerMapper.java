@@ -1,7 +1,12 @@
 package com.crm.mapper;
 
 import com.crm.entity.Customer;
+import com.crm.query.CustomerTrendQuery;
+import com.crm.vo.CustomerTrendVO;
 import com.github.yulichang.base.MPJBaseMapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -12,5 +17,7 @@ import com.github.yulichang.base.MPJBaseMapper;
  * @since 2025-10-12
  */
 public interface CustomerMapper extends MPJBaseMapper<Customer> {
-
+    List<CustomerTrendVO> getTradeStatistics(@Param("query") CustomerTrendQuery query);
+    List<CustomerTrendVO> getTradeStatisticsByDay(@Param("query") CustomerTrendQuery query);
+    List<CustomerTrendVO> getTradeStatisticsByWeek(@Param("query") CustomerTrendQuery query);
 }

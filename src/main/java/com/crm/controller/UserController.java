@@ -1,7 +1,9 @@
 // com/crm/controller/UserController.java
 package com.crm.controller;
 
+import com.crm.common.aop.Log;
 import com.crm.common.result.Result;
+import com.crm.enums.BusinessType;
 import com.crm.security.user.ManagerDetail;
 import com.crm.security.user.SecurityUser;
 import com.crm.vo.SysLoginResultVO;
@@ -18,6 +20,7 @@ public class UserController {
 
     @GetMapping("current")
     @Operation(summary = "获取当前登录用户信息")
+    @Log(title = "获取当前登录用户信息", businessType = BusinessType.SELECT)
     public Result<SysLoginResultVO> getCurrentUser() {
         ManagerDetail manager = SecurityUser.getManager();
 
