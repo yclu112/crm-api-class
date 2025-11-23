@@ -4,18 +4,20 @@ package com.crm.vo;
 import com.crm.utils.DateUtils;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModelProperty;
-import jakarta.validation.constraints.NotBlank;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
-
-
+/**
+ * @description:
+ * @author: ycshang
+ * @create: 2025-11-02 08:12
+ **/
 @Data
 public class ContractVO {
 
@@ -48,7 +50,7 @@ public class ContractVO {
     @ApiModelProperty("商机id")
     private Integer opportunityId;
 
-    @ApiModelProperty("合同状态 0-初始化，1-审核通过，2-审核未通过")
+    @Schema(description = "合同状态 0-初始化，1-审核中，2-审核通过，3-审核未通过")
     private Integer status;
 
     @ApiModelProperty("备注")
@@ -76,5 +78,8 @@ public class ContractVO {
     @JsonFormat(pattern = DateUtils.DATE_PATTERN)
     private LocalDate endTime;
 
+    // 新增：创建人信息
+    private String createrNickname; // 销售昵称（sys_manager.nickname）
+    private String createrEmail; // 销售邮箱（sys_manager.email）
     List<ProductVO> products;
 }

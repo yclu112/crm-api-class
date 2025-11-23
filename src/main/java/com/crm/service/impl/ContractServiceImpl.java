@@ -5,19 +5,17 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crm.common.exception.ServerException;
 import com.crm.common.result.PageResult;
 import com.crm.convert.ContractConvert;
-import com.crm.entity.Contract;
-import com.crm.entity.ContractProduct;
-import com.crm.entity.Customer;
-import com.crm.entity.Product;
-import com.crm.mapper.ContractMapper;
-import com.crm.mapper.ContractProductMapper;
-import com.crm.mapper.ProductMapper;
+import com.crm.entity.*;
+import com.crm.mapper.*;
+import com.crm.query.ApprovalQuery;
 import com.crm.query.ContractQuery;
 import com.crm.query.ContractTrendQuery;
+import com.crm.query.IdQuery;
 import com.crm.security.user.SecurityUser;
 import com.crm.service.ContractService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.crm.utils.DateUtils;
+import com.crm.utils.MailUtils;
 import com.crm.vo.ContractTrendVO;
 import com.crm.vo.ContractVO;
 import com.crm.vo.ProductVO;
@@ -36,19 +34,16 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import static com.crm.utils.NumberUtils.generateContractNumber;
 
-/**
- * <p>
- * 服务实现类
- * </p>
- *
- * @author crm
- * @since 2025-10-12
- */
+
+
 @Service
 @AllArgsConstructor
 public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> implements ContractService {
     private final ProductMapper productMapper;
     private final ContractProductMapper contractProductMapper;
+    private final ApprovalMapper approvalMapper;
+    private final SysManagerMapper sysManagerMapper; // 新增：管理员表Mapper（需注入）
+    private final MailUtils mailUtils; // 新增：邮件工具类
 
     @Override
     public PageResult<ContractVO> getPage(ContractQuery query) {
@@ -81,6 +76,16 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
                 contractVO.setProducts(ContractConvert.INSTANCE.toProductVOList(contractProducts));
             });
         }
+        // 关联查询客户表和管理员表（获取创建人邮箱）
+        wrapper.selectAll(Contract.class)
+                .selectAs(Customer::getName, ContractVO::getCustomerName)
+                .selectAs(SysManager::getNickname, ContractVO::getCreaterNickname) // 销售昵称
+                .selectAs(SysManager::getEmail, ContractVO::getCreaterEmail) // 销售邮箱
+                .leftJoin(Customer.class, Customer::getId, Contract::getCustomerId)
+                .leftJoin(SysManager.class, SysManager::getId, Contract::getCreaterId) // 关联创建人
+                .eq(Contract::getOwnerId, SecurityUser.getManagerId())
+                .orderByDesc(Contract::getCreateTime);
+
         return new PageResult<>(result.getRecords(), page.getTotal());
     }
 
@@ -113,6 +118,95 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         // 处理合同商品明细
         handleContractProducts(contract.getId(), contractVO.getProducts());
 
+    }
+
+
+    @Override
+    public void startApproval(IdQuery idQuery) {
+        Contract contract = baseMapper.selectById(idQuery.getId());
+        if (contract == null) {
+            throw new ServerException("合同不存在");
+        }
+        if (contract.getStatus() != 0) {
+            throw new ServerException("该合同已审核通过，请勿重复提交");
+        }
+        contract.setStatus(1);
+        baseMapper.updateById(contract);
+    }
+
+//    @Override
+//    @Transactional(rollbackFor = Exception.class)
+//    public void approvalContract(ApprovalQuery query) {
+//        Contract contract = baseMapper.selectById(query.getId());
+//        if (contract == null) {
+//            throw new ServerException("合同不存在");
+//        }
+
+//        if (contract.getStatus() != 1) {
+//            throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
+//        }
+//        // 添加审核内容，判断审核状态
+//        String approvalContent = query.getType() == 0 ? "合同审核通过" : "合同审核未通过";
+//        Integer contractStatus = query.getType() == 0 ? 2 : 3;
+//        Approval approval = new Approval();
+//        approval.setType(0);
+//        approval.setStatus(query.getType());
+//        approval.setCreaterId(SecurityUser.getManagerId());
+//        approval.setContractId(contract.getId());
+//        approval.setComment(approvalContent);
+//        approvalMapper.insert(approval);
+//        contract.setStatus(contractStatus);
+//        baseMapper.updateById(contract);
+//        approval.setComment(query.getComment()); // 保存前端传入的审核内容（关键修改）
+//    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approvalContract(ApprovalQuery query) {
+        Contract contract = baseMapper.selectById(query.getId());
+        if (contract == null) {
+            throw new ServerException("合同不存在");
+        }
+
+        // 校验合同状态（必须是“待审核”状态，即status=1）
+        if (contract.getStatus() != 1) {
+            throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
+        }
+
+        // 审核状态处理（0=通过，1=拒绝）
+        Integer contractStatus = query.getType() == 0 ? 2 : 3; // 2=通过，3=未通过（与枚举匹配）
+
+        // 保存审核记录（使用前端传入的审核内容）
+        Approval approval = new Approval();
+        approval.setType(0); // 合同审核类型
+        approval.setStatus(query.getType());
+        approval.setCreaterId(SecurityUser.getManagerId()); // 审核人ID
+        approval.setContractId(contract.getId());
+        approval.setComment(query.getComment()); // 前端传入的审核内容（关键）
+        approvalMapper.insert(approval);
+
+        // 更新合同状态
+        contract.setStatus(contractStatus);
+        baseMapper.updateById(contract);
+
+        // ===== 新增：审核通过时发送邮件通知销售 =====
+        if (query.getType() == 0) { // 0=审核通过
+            // 1. 查询创建合同的销售信息（通过contract.createrId关联sys_manager）
+            SysManager seller = sysManagerMapper.selectById(contract.getCreaterId());
+            if (seller == null) {
+                throw new ServerException("创建合同的销售信息不存在");
+            }
+            // 2. 校验销售邮箱是否存在
+            if (seller.getEmail() == null || seller.getEmail().trim().isEmpty()) {
+                throw new ServerException("销售邮箱未设置，无法发送通知");
+            }
+            // 3. 发送邮件
+            mailUtils.sendContractApprovedNotice(
+                    seller.getEmail(),
+                    contract.getName(),
+                    contract.getNumber()
+            );
+        }
     }
 
     @Autowired

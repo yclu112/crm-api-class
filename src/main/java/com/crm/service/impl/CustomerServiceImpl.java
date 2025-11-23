@@ -128,6 +128,65 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
         result.put("countList", countList);
         return result;
     }
+//@Override
+//public Map<String, List> getCustomerTrendData(CustomerTrendQuery query) {
+//    List<String> timeList = new ArrayList<>();
+//    List<Integer> countList = new ArrayList<>();
+//    List<CustomerTrendVO> tradeStatistics = new ArrayList<>();
+//
+//    if ("day".equals(query.getTransactionType())) {
+//        // 1. 时间范围设置
+//        LocalDateTime now = LocalDateTime.now();
+//        LocalDateTime endTime = now.truncatedTo(ChronoUnit.SECONDS);
+//        LocalDateTime startTime = now.withHour(0).withMinute(0).withSecond(0).truncatedTo(ChronoUnit.SECONDS);
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//        List<String> timeRange = new ArrayList<>();
+//        timeRange.add(formatter.format(startTime));
+//        timeRange.add(formatter.format(endTime));
+//        query.setTimeRange(timeRange);
+//
+//        // 2. 关键修复：先设置时间格式，再调用SQL（确保参数生效）
+//        query.setTimeFormat("%H"); // 日维度：按小时分组（00-23）
+//        tradeStatistics = baseMapper.getTradeStatisticsByDay(query); // 此时SQL能接收到%H
+//
+//        // 3. 生成与格式匹配的timeList（00-23）
+//        timeList = getHourData(timeRange);
+//        // 强制校验timeList格式（确保是纯小时字符串）
+//        if (timeList.isEmpty() || !timeList.get(0).matches("\\d{2}")) {
+//            timeList = new ArrayList<>();
+//            for (int i = 0; i < 24; i++) {
+//                timeList.add(String.format("%02d", i));
+//            }
+//        }
+//
+//    } else if ("monthrange".equals(query.getTransactionType())) {
+//        query.setTimeFormat("%Y-%m");
+//        timeList = getMonthInRange(query.getTimeRange().get(0), query.getTimeRange().get(1));
+//        tradeStatistics = baseMapper.getTradeStatistics(query);
+//    } else if ("week".equals(query.getTransactionType())) {
+//        timeList = getWeekInRange(query.getTimeRange().get(0), query.getTimeRange().get(1));
+//        tradeStatistics = baseMapper.getTradeStatisticsByWeek(query);
+//    } else {
+//        query.setTimeFormat("%Y-%m-%d");
+//        timeList = DateUtils.getDatesInRange(query.getTimeRange().get(0), query.getTimeRange().get(1));
+//        tradeStatistics = baseMapper.getTradeStatistics(query);
+//    }
+//
+//    // 数据匹配（强制兜底，确保每个小时都有值）
+//    Map<String, Integer> hourCountMap = new HashMap<>();
+//    for (CustomerTrendVO vo : tradeStatistics) {
+//        hourCountMap.put(vo.getTradeTime(), vo.getTradeCount());
+//    }
+//    countList.clear(); // 清空原有列表，重新构建
+//    for (String hour : timeList) {
+//        countList.add(hourCountMap.getOrDefault(hour, 0)); // 无数据则补0
+//    }
+//
+//    Map<String, List> result = new HashMap<>();
+//    result.put("timeList", timeList);
+//    result.put("countList", countList);
+//    return result;
+//}
     @Override
     public void saveOrUpdate(CustomerVO customerVO) {
         LambdaQueryWrapper<Customer> wrapper = new LambdaQueryWrapper<Customer>().eq(Customer::getPhone, customerVO.getPhone());

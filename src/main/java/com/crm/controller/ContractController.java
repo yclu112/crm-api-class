@@ -1,11 +1,14 @@
 package com.crm.controller;
 
+//import com.crm.aop.Log;
 import com.crm.common.aop.Log;
 import com.crm.common.result.PageResult;
 import com.crm.common.result.Result;
 import com.crm.enums.BusinessType;
+import com.crm.query.ApprovalQuery;
 import com.crm.query.ContractQuery;
 import com.crm.query.ContractTrendQuery;
+import com.crm.query.IdQuery;
 import com.crm.service.ContractService;
 import com.crm.vo.ContractVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +25,7 @@ import java.util.Map;
 
 /**
  * <p>
- * 前端控制器
+ *  前端控制器
  * </p>
  *
  * @author crm
@@ -30,24 +33,22 @@ import java.util.Map;
  */
 @Tag(name = "合同管理")
 @RestController
-@RequestMapping("contract")
+@RequestMapping("/contract")
 @AllArgsConstructor
 public class ContractController {
     private final ContractService contractService;
 
-
-    @PostMapping("page")
+    @PostMapping("/page")
     @Operation(summary = "合同列表-分页")
-    @Log(title = "合同列表-分页", businessType = BusinessType.SELECT)
+    @Log(title = "合同列表-分页查询", businessType = BusinessType.SELECT)
     public Result<PageResult<ContractVO>> getPage(@RequestBody @Validated ContractQuery contractQuery) {
         return Result.ok(contractService.getPage(contractQuery));
     }
 
-    @PostMapping("saveOrUpdate")
+    @PostMapping("/saveOrUpdate")
     @Operation(summary = "新增/修改合同信息")
-    @Log(title = "新增/修改合同信息", businessType = BusinessType.SELECT)
-    public Result saveOrUpdate(@RequestBody @Validated ContractVO customerVO) {
-        contractService.saveOrUpdate(customerVO);
+    public Result saveOrUpdate(@RequestBody @Validated ContractVO contractVO) {
+        contractService.saveOrUpdate(contractVO);
         return Result.ok();
     }
 
@@ -58,4 +59,19 @@ public class ContractController {
         return Result.ok(contractService.getContractTrendData(query));
     }
 
+    @PostMapping("startApproval")
+    @Operation(summary = "启动合同审批")
+    @Log(title = "启动合同审批", businessType = BusinessType.INSERT_OR_UPDATE)
+    public Result startApproval(@RequestBody @Validated IdQuery idQuery) {
+        contractService.startApproval(idQuery);
+        return Result.ok();
+    }
+
+    @PostMapping("approvalContract")
+    @Operation(summary = "合同审批")
+    @Log(title = "合同审批", businessType = BusinessType.INSERT_OR_UPDATE)
+    public Result approvalContract(@RequestBody @Validated ApprovalQuery query) {
+        contractService.approvalContract(query);
+        return Result.ok();
+    }
 }

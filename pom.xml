@@ -80,7 +80,10 @@
             <artifactId>easy-trans-mybatis-plus-extend</artifactId>
             <version>${easytrans.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
 
         <!-- mysql-->
         <dependency>
@@ -188,6 +191,7 @@
     </dependencies>
 
     <build>
+        <finalName>crm-api</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

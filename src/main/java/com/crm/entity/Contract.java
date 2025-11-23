@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+
+import com.crm.enums.ContractStatusEnum;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
@@ -75,6 +77,7 @@ public class Contract {
     @TableLogic
     private Integer deleteFlag;
 
+
     @ApiModelProperty("创建时间")
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
@@ -98,4 +101,5 @@ public class Contract {
     @ApiModelProperty("合同结束时间")
     @TableField("end_time")
     private LocalDate endTime;
+
 }

@@ -16,6 +16,8 @@ import java.util.List;
 public class SysManagerQuery extends Query {
     @Schema(description = "账号")
     private String account;
+    @Schema(description = "邮箱")
+    private String email;
     @Schema(description = "昵称")
     private String nickname;
     @Schema(description = "部门id")

@@ -29,6 +29,10 @@ public class SysManager {
     @TableField("depart_id")
     private Integer departId;
 
+    // 新增邮箱字段
+    @TableField("email")
+    private String email;
+
     @TableField(value = "delete_flag", fill = FieldFill.INSERT)
     @TableLogic
     private Integer deleteFlag;

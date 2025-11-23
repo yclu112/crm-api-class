@@ -20,14 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-
-/**
- * <p>
- * 服务实现类
- * </p>
- *
-
- */
 @Service
 @AllArgsConstructor
 public class SysManagerServiceImpl extends ServiceImpl<SysManagerMapper, SysManager> implements SysManagerService {
@@ -108,3 +100,4 @@ public class SysManagerServiceImpl extends ServiceImpl<SysManagerMapper, SysMana
         updateById(sysManager);
     }
 }
+
