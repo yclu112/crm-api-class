@@ -45,4 +45,7 @@ public interface ContractService extends IService<Contract> {
      * @param query
      */
     void approvalContract(ApprovalQuery query);
+    Contract getById(Integer id);
+    void refreshContractReceivedAmount(Integer contractId);
+
 }

@@ -7,6 +7,7 @@ import com.crm.vo.ContractTrendVO;
 import com.github.yulichang.base.MPJBaseMapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -26,4 +27,5 @@ public interface ContractMapper extends MPJBaseMapper<Contract> {
 
     // 周维度统计（对应 XML 中 id="getContractTradeStatisticsByWeek"）
     List<ContractTrendVO> getTradeStatisticsByWeek(@Param("query") ContractTrendQuery query);
+    void updateReceivedAmount(@Param("contractId") Integer contractId, @Param("amount") BigDecimal amount);
 }

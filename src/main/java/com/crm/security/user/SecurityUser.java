@@ -13,6 +13,7 @@ public class SecurityUser {
         ManagerDetail user;
         try {
             user = (ManagerDetail)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
         }catch (Exception e){
             return new ManagerDetail();
         }
@@ -25,6 +26,9 @@ public class SecurityUser {
      */
     public static Integer getManagerId() {
         return getManager().getId();
+    }
+    public static String getManagerName() {
+        return getManager().getRealName();
     }
 
 }

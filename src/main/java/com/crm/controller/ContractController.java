@@ -1,25 +1,29 @@
 package com.crm.controller;
 
-//import com.crm.aop.Log;
 import com.crm.common.aop.Log;
+import com.crm.common.exception.ServerException;
 import com.crm.common.result.PageResult;
 import com.crm.common.result.Result;
+import com.crm.entity.Contract;
 import com.crm.enums.BusinessType;
 import com.crm.query.ApprovalQuery;
 import com.crm.query.ContractQuery;
 import com.crm.query.ContractTrendQuery;
 import com.crm.query.IdQuery;
 import com.crm.service.ContractService;
+import com.crm.service.PaymentService;
 import com.crm.vo.ContractVO;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -31,12 +35,14 @@ import java.util.Map;
  * @author crm
  * @since 2025-10-12
  */
+@Slf4j
 @Tag(name = "合同管理")
 @RestController
 @RequestMapping("/contract")
 @AllArgsConstructor
 public class ContractController {
     private final ContractService contractService;
+    private final PaymentService paymentService;
 
     @PostMapping("/page")
     @Operation(summary = "合同列表-分页")
@@ -74,4 +80,25 @@ public class ContractController {
         contractService.approvalContract(query);
         return Result.ok();
     }
+    @GetMapping("/{id}")
+    @Operation(summary = "根据ID查询合同详情")
+    public Result<Contract> getById(@PathVariable Integer id) {
+        Contract contract = contractService.getById(id);
+        return Result.ok(contract);
+    }
+//    @PostMapping("/contract/update-received-amount")
+//    public Result<?> updateReceivedAmount(@RequestBody ContractAmountUpdateRequest request) {
+//        Contract contract = contractService.getById(request.getContractId());
+//        if (contract == null) {
+//            return Result.error("合同不存在");
+//        }
+//
+//        // 使用 BigDecimal 进行加法运算
+//        BigDecimal newReceivedAmount = contract.getReceivedAmount().add(new BigDecimal(request.getAddAmount()));
+//        contract.setReceivedAmount(newReceivedAmount);
+//
+//        contractService.updateById(contract);
+//        return Result.ok("更新成功");
+//    }
+
 }

@@ -6,6 +6,8 @@ import com.crm.common.exception.ServerException;
 import com.crm.common.result.PageResult;
 import com.crm.convert.ContractConvert;
 import com.crm.entity.*;
+import com.crm.enums.ApprovalTypeEnum;
+import com.crm.enums.ContractStatusEnum;
 import com.crm.mapper.*;
 import com.crm.query.ApprovalQuery;
 import com.crm.query.ContractQuery;
@@ -22,7 +24,9 @@ import com.crm.vo.ProductVO;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,79 +138,95 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         baseMapper.updateById(contract);
     }
 
-//    @Override
-//    @Transactional(rollbackFor = Exception.class)
-//    public void approvalContract(ApprovalQuery query) {
-//        Contract contract = baseMapper.selectById(query.getId());
-//        if (contract == null) {
-//            throw new ServerException("合同不存在");
-//        }
+    private final PaymentMapper paymentMapper;
+@Override
+@Transactional(rollbackFor = Exception.class)
+public void approvalContract(ApprovalQuery query) {
+    Contract contract = baseMapper.selectById(query.getId());
+    if (contract == null) {
+        throw new ServerException("合同不存在");
+    }
 
-//        if (contract.getStatus() != 1) {
-//            throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
-//        }
-//        // 添加审核内容，判断审核状态
-//        String approvalContent = query.getType() == 0 ? "合同审核通过" : "合同审核未通过";
-//        Integer contractStatus = query.getType() == 0 ? 2 : 3;
-//        Approval approval = new Approval();
-//        approval.setType(0);
-//        approval.setStatus(query.getType());
-//        approval.setCreaterId(SecurityUser.getManagerId());
-//        approval.setContractId(contract.getId());
-//        approval.setComment(approvalContent);
-//        approvalMapper.insert(approval);
-//        contract.setStatus(contractStatus);
-//        baseMapper.updateById(contract);
-//        approval.setComment(query.getComment()); // 保存前端传入的审核内容（关键修改）
-//    }
+    if (contract.getStatus() != 1) {
+        throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
+    }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void approvalContract(ApprovalQuery query) {
-        Contract contract = baseMapper.selectById(query.getId());
-        if (contract == null) {
-            throw new ServerException("合同不存在");
-        }
+    Integer contractStatus = query.getType() == 0 ? 2 : 3;
 
-        // 校验合同状态（必须是“待审核”状态，即status=1）
-        if (contract.getStatus() != 1) {
-            throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
-        }
+    // 保存合同审核记录
+    Approval approval = new Approval();
+    approval.setType(0); // 合同审核类型
+    approval.setStatus(query.getType());
+    approval.setCreaterId(SecurityUser.getManagerId());
+    approval.setContractId(contract.getId());
+    approval.setComment(query.getComment());
+    approvalMapper.insert(approval);
 
-        // 审核状态处理（0=通过，1=拒绝）
-        Integer contractStatus = query.getType() == 0 ? 2 : 3; // 2=通过，3=未通过（与枚举匹配）
+    // 更新合同状态
+    contract.setStatus(contractStatus);
+    baseMapper.updateById(contract);
 
-        // 保存审核记录（使用前端传入的审核内容）
-        Approval approval = new Approval();
-        approval.setType(0); // 合同审核类型
-        approval.setStatus(query.getType());
-        approval.setCreaterId(SecurityUser.getManagerId()); // 审核人ID
-        approval.setContractId(contract.getId());
-        approval.setComment(query.getComment()); // 前端传入的审核内容（关键）
-        approvalMapper.insert(approval);
+    // ===== 新增：合同审核通过时，自动创建回款审核记录 =====
+    if (query.getType() == 0) { // 审核通过
+        createPaymentApproval(contract);
 
-        // 更新合同状态
-        contract.setStatus(contractStatus);
-        baseMapper.updateById(contract);
-
-        // ===== 新增：审核通过时发送邮件通知销售 =====
-        if (query.getType() == 0) { // 0=审核通过
-            // 1. 查询创建合同的销售信息（通过contract.createrId关联sys_manager）
-            SysManager seller = sysManagerMapper.selectById(contract.getCreaterId());
-            if (seller == null) {
-                throw new ServerException("创建合同的销售信息不存在");
-            }
-            // 2. 校验销售邮箱是否存在
-            if (seller.getEmail() == null || seller.getEmail().trim().isEmpty()) {
-                throw new ServerException("销售邮箱未设置，无法发送通知");
-            }
-            // 3. 发送邮件
+        // 发送邮件通知
+        SysManager seller = sysManagerMapper.selectById(contract.getCreaterId());
+        if (seller != null && seller.getEmail() != null && !seller.getEmail().trim().isEmpty()) {
             mailUtils.sendContractApprovedNotice(
                     seller.getEmail(),
                     contract.getName(),
                     contract.getNumber()
             );
         }
+    }
+}
+    /**
+     * 创建回款审核记录
+     */
+    private void createPaymentApproval(Contract contract) {
+        Payment payment = new Payment();
+        payment.setContractId(contract.getId());
+        payment.setCustomerId(contract.getCustomerId());
+        payment.setContractNumber(contract.getNumber());
+        payment.setContractName(contract.getName());
+        payment.setNumber(generatePaymentNumber()); // 生成回款编号
+        payment.setCreaterId(contract.getCreaterId());
+        payment.setStatus(1); // 待审核状态
+        payment.setPaymentMethod(0); // 默认支付方式，根据实际业务调整
+        payment.setPaymentTime(null); // 支付时间为空，审核通过后填写
+        payment.setDeleteFlag(0);
+        payment.setCreateTime(LocalDateTime.now());
+        payment.setUpdateTime(LocalDateTime.now());
+        payment.setAmount(contract.getAmount().subtract(contract.getReceivedAmount())); // 回款金额
+
+        // 保存回款记录
+        paymentMapper.insert(payment);
+
+        // 可选：同时创建回款审核记录
+        Approval paymentApproval = new Approval();
+        paymentApproval.setType(1); // 回款审核类型
+        paymentApproval.setStatus(1); // 待审核
+        paymentApproval.setCreaterId(contract.getCreaterId());
+        paymentApproval.setContractId(contract.getId());
+        paymentApproval.setPaymentId(payment.getId());
+        paymentApproval.setComment("合同审核通过，自动生成回款审核");
+        paymentApproval.setCreateTime(LocalDateTime.now());
+        approvalMapper.insert(paymentApproval);
+    }
+
+    /**
+     * 生成回款编号（示例逻辑，根据实际业务调整）
+     */
+    private Integer generatePaymentNumber() {
+        // 这里可以使用雪花算法、Redis自增、或者查询最大编号+1等方式
+        // 示例：返回当前时间戳（需要确保不重复）
+        return (int) (System.currentTimeMillis() % 1000000);
+    }
+
+    @Override
+    public Contract getById(Integer id) {
+        return baseMapper.selectById(id);
     }
 
     @Autowired
@@ -391,6 +411,12 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         cp.setTotalPrice(product.getPrice().multiply(BigDecimal.valueOf(count)));
         return cp;
     }
+    @Override
+    public void refreshContractReceivedAmount(Integer contractId) {
+        // 1. 查询该合同下所有审核通过的回款总和
+        BigDecimal approvedSum = paymentMapper.selectApprovedPaymentSum(contractId);
 
-
+        // 2. 更新合同的已收到款项字段
+        contractMapper.updateReceivedAmount(contractId, approvedSum);
+    }
 }

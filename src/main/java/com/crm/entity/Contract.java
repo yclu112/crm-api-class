@@ -6,13 +6,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-
-import com.crm.enums.ContractStatusEnum;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
@@ -50,7 +46,7 @@ public class Contract {
 
     @ApiModelProperty("已收到款项")
     @TableField("received_amount")
-    private BigDecimal receivedAmount=BigDecimal.ZERO;
+    private BigDecimal receivedAmount;
 
     @ApiModelProperty("签约时间")
     @TableField("sign_time")
@@ -77,7 +73,6 @@ public class Contract {
     @TableLogic
     private Integer deleteFlag;
 
-
     @ApiModelProperty("创建时间")
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
@@ -101,5 +96,4 @@ public class Contract {
     @ApiModelProperty("合同结束时间")
     @TableField("end_time")
     private LocalDate endTime;
-
 }

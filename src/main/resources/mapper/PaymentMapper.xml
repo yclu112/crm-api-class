@@ -18,5 +18,30 @@
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
     </resultMap>
+    <select id="selectPaymentPage" resultType="com.crm.entity.Payment">
+        SELECT p.*, c.number as contractNumber, c.name as contractName
+        FROM t_payment p
+                 LEFT JOIN t_contract c ON c.id = p.contract_id
+        WHERE p.delete_flag = 0
+    </select>
+    <!-- 回款审核：更新状态（用Map接收id和type） -->
+    <update id="approvalPayment">
+        UPDATE t_payment
+        SET status = CASE WHEN #{map.type} = 0 THEN 1 ELSE 2 END,  -- 0=通过→1，1=不通过→2
+            update_time = NOW()
+        WHERE id = #{map.id}
+          AND delete_flag = 0
+          AND status = 0;  -- 只能审核待审核状态（0）的回款
+    </update>
+
+    <!-- 查询合同下所有审核通过的回款金额总和 -->
+    <select id="selectApprovedPaymentSum" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(amount), 0)
+        FROM t_payment
+        WHERE contract_id = #{contractId}
+          AND status = 1  -- 1=审核通过
+          AND delete_flag = 0;
+    </select>
+
 
 </mapper>

@@ -77,4 +77,18 @@
         group by tradeTime
         order by tradeTime;
     </select>
+
+    <update id="updateReceivedAmount" statementType="PREPARED">
+        UPDATE t_contract
+        SET
+            received_amount = received_amount + #{amount},  -- 数据库原生累加，先读旧值再加新值
+            update_time = NOW()                              -- 更新时间戳
+        WHERE id = #{contractId}
+          AND delete_flag = 0;                              -- 仅更新未删除的合同
+    </update>
+    <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT * FROM t_contract
+        WHERE id = #{id} AND delete_flag = 0
+    </select>
+
 </mapper>

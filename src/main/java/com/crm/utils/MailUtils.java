@@ -33,4 +33,23 @@ public class MailUtils {
         )); // 内容
         mailSender.send(message);
     }
+
+    /**
+     * 发送回款审核通过通知
+     * @param toEmail 收件人邮箱（销售的邮箱）
+     * @param contractName 关联的合同名称
+     * @param paymentNumber 回款单编号
+     */
+    public void sendPaymentApprovedNotice(String toEmail, String contractName, Integer paymentNumber) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail); // 发件人
+        message.setTo(toEmail); // 收件人
+        message.setSubject("【CRM系统】回款审核通过通知"); // 主题
+        message.setText(String.format(
+                "您好！\n您提交的回款单已审核通过：\n关联合同：%s\n回款编号：%s\n请及时登录系统查看详情。",
+                contractName, paymentNumber
+        )); // 内容
+        mailSender.send(message);
+    }
+
 }

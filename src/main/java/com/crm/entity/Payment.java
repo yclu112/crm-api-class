@@ -6,22 +6,16 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-/**
- * <p>
- * 
- * </p>
- *
- * @author crm
- * @since 2025-10-12
- */
-@Getter
-@Setter
+@Data
 @TableName("t_payment")
 @ApiModel(value = "Payment对象", description = "")
 public class Payment {
@@ -64,18 +58,27 @@ public class Payment {
 
     @ApiModelProperty("支付时间")
     @TableField("payment_time")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime paymentTime;
+
+    // 新增：回款金额字段（根据实际数据库类型选择，通常是BigDecimal）
+    @ApiModelProperty("回款金额")
+    @TableField("amount")
+    private BigDecimal amount;
 
     @ApiModelProperty("逻辑删除 0-未删除，1-已删除")
     @TableField(value = "delete_flag", fill = FieldFill.INSERT)
     @TableLogic
-    private Byte deleteFlag;
+    private Integer deleteFlag;
 
     @ApiModelProperty("创建时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     @ApiModelProperty("更新时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
 }
