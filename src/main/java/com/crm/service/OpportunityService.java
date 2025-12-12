@@ -1,7 +1,10 @@
 package com.crm.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.crm.entity.Opportunity;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  * <p>

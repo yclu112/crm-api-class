@@ -6,8 +6,6 @@ import com.crm.common.exception.ServerException;
 import com.crm.common.result.PageResult;
 import com.crm.convert.ContractConvert;
 import com.crm.entity.*;
-import com.crm.enums.ApprovalTypeEnum;
-import com.crm.enums.ContractStatusEnum;
 import com.crm.mapper.*;
 import com.crm.query.ApprovalQuery;
 import com.crm.query.ContractQuery;
@@ -24,9 +22,7 @@ import com.crm.vo.ProductVO;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -139,48 +135,67 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     }
 
     private final PaymentMapper paymentMapper;
-@Override
-@Transactional(rollbackFor = Exception.class)
-public void approvalContract(ApprovalQuery query) {
-    Contract contract = baseMapper.selectById(query.getId());
-    if (contract == null) {
-        throw new ServerException("合同不存在");
-    }
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approvalContract(ApprovalQuery query) {
+        Contract contract = baseMapper.selectById(query.getId());
+        if (contract == null) {
+            throw new ServerException("合同不存在");
+        }
 
-    if (contract.getStatus() != 1) {
-        throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
-    }
+        if (contract.getStatus() != 1) {
+            throw new ServerException("合同还未发起审核或已审核，请勿重复提交");
+        }
 
-    Integer contractStatus = query.getType() == 0 ? 2 : 3;
+        Integer contractStatus = query.getType() == 0 ? 2 : 3;
 
-    // 保存合同审核记录
-    Approval approval = new Approval();
-    approval.setType(0); // 合同审核类型
-    approval.setStatus(query.getType());
-    approval.setCreaterId(SecurityUser.getManagerId());
-    approval.setContractId(contract.getId());
-    approval.setComment(query.getComment());
-    approvalMapper.insert(approval);
+        // 保存合同审核记录
+        Approval approval = new Approval();
+        approval.setType(0); // 合同审核类型
+        approval.setStatus(query.getType());
+        approval.setCreaterId(SecurityUser.getManagerId());
+        approval.setContractId(contract.getId());
+        approval.setComment(query.getComment());
+        approvalMapper.insert(approval);
 
-    // 更新合同状态
-    contract.setStatus(contractStatus);
-    baseMapper.updateById(contract);
+        // 更新合同状态
+        contract.setStatus(contractStatus);
+        baseMapper.updateById(contract);
 
-    // ===== 新增：合同审核通过时，自动创建回款审核记录 =====
-    if (query.getType() == 0) { // 审核通过
-        createPaymentApproval(contract);
+        // ===== 新增：合同审核通过时，自动创建回款审核记录 =====
+        if (query.getType() == 0) { // 审核通过
+            createPaymentApproval(contract);
 
-        // 发送邮件通知
-        SysManager seller = sysManagerMapper.selectById(contract.getCreaterId());
-        if (seller != null && seller.getEmail() != null && !seller.getEmail().trim().isEmpty()) {
-            mailUtils.sendContractApprovedNotice(
-                    seller.getEmail(),
-                    contract.getName(),
-                    contract.getNumber()
-            );
+            // 发送邮件通知
+            SysManager seller = sysManagerMapper.selectById(contract.getCreaterId());
+            if (seller != null && seller.getEmail() != null && !seller.getEmail().trim().isEmpty()) {
+                mailUtils.sendContractApprovedNotice(
+                        seller.getEmail(),
+                        contract.getName(),
+                        contract.getNumber()
+                );
+            }
+        }
+        // ===== 新增：合同审核不通过时，发送驳回邮件通知 =====
+        else { // query.getType() != 0 即审核不通过
+            SysManager seller = sysManagerMapper.selectById(contract.getCreaterId());
+            // 校验销售信息和邮箱有效性
+            if (seller != null && seller.getEmail() != null && !seller.getEmail().trim().isEmpty()) {
+                // 获取驳回原因（优先用审核备注，无备注时填充默认值）
+                String rejectReason = StringUtils.isNotBlank(query.getComment())
+                        ? query.getComment().trim()
+                        : "未填写具体驳回原因，请联系审核管理员";
+
+                // 调用邮件工具类发送驳回通知
+                mailUtils.sendContractRejectedNotice(
+                        seller.getEmail(),
+                        contract.getName(),
+                        contract.getNumber(),
+                        rejectReason
+                );
+            }
         }
     }
-}
     /**
      * 创建回款审核记录
      */

@@ -1,7 +1,12 @@
 package com.crm.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.crm.entity.Opportunity;
+import com.crm.service.OpportunityService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -12,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2025-10-12
  */
 @RestController
-@RequestMapping("/crm/opportunity")
+@RequestMapping("crm/opportunity")
 public class OpportunityController {
 
 }
